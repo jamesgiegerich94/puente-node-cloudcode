@@ -44,7 +44,32 @@ describe('crud testing', () => {
     });
   });
 
-  it('should post an object to class with relation to original post with a variety of classes', async () => {
+  it('should post object to Supplementary Class with Relation to SurveyData', async () => {
+    const postParams = {
+      parseParentClass: 'SurveyData',
+      parseParentClassID: postID1,
+      parseClass: 'Vitals',
+      signature: 'Test',
+      photoFile: 'TestPicture',
+      parseUser: 'undefined',
+      localObject: {
+        height: '6',
+        weight: '2',
+        bmi: '30',
+        bloodPressure: '100/100',
+        latitude: 4,
+        longitude: 5,
+        surveyingOrganization: 'Puente',
+      },
+    };
+    return cloudFunctions.postObjectsToClassWithRelation(postParams).then((result) => {
+      expect(result.get('height')).toEqual('6');
+      expect(result.get('weight')).toEqual('2');
+      expect(result.get('bloodPressure')).toEqual('100/100');
+    });
+  });
+
+  it('should post an obj to class with relation to post with variety of classes', async () => {
     const postParams = {
       parseParentClass: 'SurveyData',
       parseParentClassID: postID1,

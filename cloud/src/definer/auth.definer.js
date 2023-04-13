@@ -1,4 +1,5 @@
 const services = require('../services');
+const modules = require('../module');
 
 /** ******************************************
 SIGN UP
@@ -68,7 +69,9 @@ Parse.Cloud.define('signup', (request) => new Promise((resolve, reject) => {
         email,
         phonenumber,
       };
-      if (restParams) await services.messaging.sendMessage(restParams, userObject);
+      if (restParams) {
+        await services.Messaging.TextEmailMessaging.sendMessage(restParams, userObject);
+      }
 
       const acl = new Parse.ACL();
       acl.setPublicReadAccess(true);
@@ -93,7 +96,7 @@ Parse.Cloud.define('signup', (request) => new Promise((resolve, reject) => {
       reject(error);
     });
   }).catch((error) => {
-    console.log(`Error: ${error.code} ${error.message}`); // eslint-disable-line
+    modules.Error.logError(`Error: ${error.code} ${error.message}`);
     reject(error);
   });
 }));
@@ -125,14 +128,14 @@ Parse.Cloud.define('signin', (request, response) => new Promise((resolve, reject
           console.log(`User logged in successful with email: ${result.get('email')}`); // eslint-disable-line
           resolve(result);
         }, (error2) => {
-          console.log(`Error: ${error2.code} ${error2.message}`); // eslint-disable-line
+          modules.Error.logError(`Error: ${error2.code} ${error2.message}`);
           response.error(reject(error2));
         });
       }, (error3) => {
-        console.log(`Error: ${error3.code} ${error3.message}`); // eslint-disable-line
+        modules.Error.logError(`Error: ${error3.code} ${error3.message}`);
         response.error(reject(error3));
       });
-      console.log(`Error: ${error1.code} ${error1.message}`); // eslint-disable-line
+      modules.Error.logError(`Error: ${error1.code} ${error1.message}`);
       response.error(reject(error1));
     });
 }));
@@ -234,3 +237,62 @@ Parse.Cloud.define('addUserPushToken', (request) => new Promise((resolve, reject
       reject(error2);
     });
 }));
+
+/**
+ *
+ */
+Parse.Cloud.define('updateUser', async (request) => {
+  const { objectId, userObject } = request.params;
+  const User = Parse.Object.extend(Parse.User);
+  const query = new Parse.Query(User);
+  const user = await query.get(objectId, { useMasterKey: true });
+  if (!user) return 'No user found!';
+
+  Object.keys(userObject).forEach((key) => {
+    const obj = userObject[key];
+    user.set(String(key), obj);
+  });
+
+  try {
+    user.save(null, { useMasterKey: true });
+    return JSON.parse(JSON.stringify(user));
+  } catch (e) {
+    return e.message;
+  }
+});
+
+Parse.Cloud.define('queryUser', async (request) => {
+  const { username } = request.params;
+  const User = Parse.Object.extend(Parse.User);
+
+  const phonenumber = new Parse.Query(User);
+  const email = new Parse.Query(User);
+  const userName = new Parse.Query(User);
+
+  phonenumber.equalTo('phonenumber', username);
+  email.equalTo('email', username);
+  userName.equalTo('username', username);
+
+  const query = Parse.Query.or(phonenumber, email, userName);
+  const queriedUser = await query.first(null, { useMasterKey: true });
+
+  try {
+    const userQuery = new Parse.Query(Parse.User);
+    const user = await userQuery.get(queriedUser.id, { useMasterKey: true });
+    return JSON.parse(JSON.stringify(user));
+  } catch (e) {
+    return e.message;
+  }
+});
+
+Parse.Cloud.define('sendMessage', async (request) => {
+  const { user, restParamsData } = request.params;
+  restParamsData.runMessaging = true;
+
+  try {
+    const resp = await services.Messaging.TextEmailMessaging.sendMessage(restParamsData, user);
+    return JSON.parse(JSON.stringify(resp));
+  } catch (e) {
+    return e.message;
+  }
+});
