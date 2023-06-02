@@ -110,7 +110,7 @@ Parse.Cloud.define('postObjectsToClass', (request) => {
     }, (error) => {
       console.log(error); // eslint-disable-line
     });
-
+ 
     surveyPoint.set('picture', parseFilePhoto);
   }
 
@@ -133,6 +133,11 @@ Parse.Cloud.define('postObjectsToClass', (request) => {
   if (localObject.latitude && localObject.longitude) {
     const point = new Parse.GeoPoint(localObject.latitude, localObject.longitude);
     surveyPoint.set('location', point);
+  }
+  
+  const serverUser = Parse.User.current()
+  if (serverUser) {
+    surveyPoint.add('createdBy', serverUser)
   }
 
   if (parseUser) {
@@ -213,6 +218,12 @@ Parse.Cloud.define('postObjectsToClassWithRelation', (request) => new Promise((r
     loopParentForm.id = String(loopParentID);
     supplementaryForm.set('loopClient', loopParentForm);
   }
+
+  const serverUser = Parse.User.current()
+  if (serverUser) {
+    supplementaryForm.add('createdBy', serverUser)
+  }
+  
 
   if (parseUser) {
     userObject.id = String(parseUser);
@@ -615,3 +626,4 @@ Parse.Cloud.define('postOfflineForms', (request) => new Promise((resolve, reject
     reject(error);
   });
 }));
+
